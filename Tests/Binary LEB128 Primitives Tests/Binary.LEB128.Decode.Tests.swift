@@ -1,0 +1,160 @@
+// Binary.LEB128.Decode.Tests.swift
+// swift-binary-leb128-primitives
+//
+// Tests for the shared LEB128 decode core (Binary.LEB128.Decode). These pin
+// the canonical precise-fit contract the parser structs and the binary
+// Machine/Borrowed interpreters will route through.
+
+import Binary_LEB128_Primitives
+import Binary_LEB128_Primitives_Test_Support
+import Byte_Primitives
+import Testing
+
+// MARK: - Drivers
+
+/// Decodes a full unsigned LEB128 byte sequence by folding each byte through the core.
+private func decodeUnsigned<T: UnsignedInteger & FixedWidthInteger>(
+    _ bytes: [UInt8],
+    _ type: T.Type
+) throws(Binary.LEB128.Error) -> T {
+    var result: T = 0
+    var shift = 0
+    for byte in bytes {
+        if try Binary.LEB128.Decode.unsigned(byte: byte, into: &result, shift: &shift) {
+            return result
+        }
+    }
+    throw .unterminated
+}
+
+/// Decodes a full signed LEB128 byte sequence by folding each byte through the core.
+private func decodeSigned<T: SignedInteger & FixedWidthInteger>(
+    _ bytes: [UInt8],
+    _ type: T.Type
+) throws(Binary.LEB128.Error) -> T {
+    var result: T = 0
+    var shift = 0
+    for byte in bytes {
+        if try Binary.LEB128.Decode.signed(byte: byte, into: &result, shift: &shift) {
+            return result
+        }
+    }
+    throw .unterminated
+}
+
+private func encoded<T: UnsignedInteger & FixedWidthInteger>(_ value: T) -> [UInt8] {
+    [Byte](leb128: value).map(\.underlying)
+}
+
+private func encoded<T: SignedInteger & FixedWidthInteger>(_ value: T) -> [UInt8] {
+    [Byte](leb128: value).map(\.underlying)
+}
+
+// MARK: - Test Suites
+
+@Suite("Binary.LEB128.Decode")
+struct BinaryLEB128DecodeTests {
+    @Suite struct Unit {}
+    @Suite struct EdgeCase {}
+}
+
+// MARK: - Unit
+
+extension BinaryLEB128DecodeTests.Unit {
+
+    @Test
+    func `decode unsigned known sequences`() throws {
+        #expect(try decodeUnsigned([0x00], UInt64.self) == 0)
+        #expect(try decodeUnsigned([0x01], UInt64.self) == 1)
+        #expect(try decodeUnsigned([0x7F], UInt64.self) == 127)
+        #expect(try decodeUnsigned([0x80, 0x01], UInt64.self) == 128)
+        #expect(try decodeUnsigned([0xAC, 0x02], UInt64.self) == 300)
+        #expect(try decodeUnsigned([0xE5, 0x8E, 0x26], UInt64.self) == 624485)
+    }
+
+    @Test
+    func `decode signed known sequences`() throws {
+        #expect(try decodeSigned([0x00], Int64.self) == 0)
+        #expect(try decodeSigned([0x01], Int64.self) == 1)
+        #expect(try decodeSigned([0x3F], Int64.self) == 63)
+        #expect(try decodeSigned([0x7F], Int64.self) == -1)
+        #expect(try decodeSigned([0x7E], Int64.self) == -2)
+        #expect(try decodeSigned([0x40], Int64.self) == -64)
+        #expect(try decodeSigned([0x80, 0x7F], Int64.self) == -128)
+    }
+
+    @Test
+    func `round-trips unsigned across widths`() throws {
+        for v in [0, 1, 127, 128, 200, 255] as [UInt8] {
+            #expect(try decodeUnsigned(encoded(v), UInt8.self) == v)
+        }
+        for v in [0, 1, 127, 128, 300, 16384, 65535] as [UInt16] {
+            #expect(try decodeUnsigned(encoded(v), UInt16.self) == v)
+        }
+        for v in [0, 1, 624485, UInt32.max] as [UInt32] {
+            #expect(try decodeUnsigned(encoded(v), UInt32.self) == v)
+        }
+        for v in [0, 1, 624485, UInt64.max] as [UInt64] {
+            #expect(try decodeUnsigned(encoded(v), UInt64.self) == v)
+        }
+    }
+
+    @Test
+    func `round-trips signed across widths`() throws {
+        for v in [0, 1, -1, 63, -64, Int8.min, Int8.max] as [Int8] {
+            #expect(try decodeSigned(encoded(v), Int8.self) == v)
+        }
+        for v in [0, 1, -1, 127, -128, -624485, Int32.min, Int32.max] as [Int32] {
+            #expect(try decodeSigned(encoded(v), Int32.self) == v)
+        }
+        for v in [0, 1, -1, -624485, Int64.min, Int64.max] as [Int64] {
+            #expect(try decodeSigned(encoded(v), Int64.self) == v)
+        }
+    }
+}
+
+// MARK: - Edge Cases
+
+extension BinaryLEB128DecodeTests.EdgeCase {
+
+    @Test
+    func `unsigned rejects value past target width`() {
+        // [0x80, 0x02] encodes 256, which exceeds UInt8.
+        #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
+            try decodeUnsigned([0x80, 0x02], UInt8.self)
+        }
+    }
+
+    @Test
+    func `unsigned precise-fit catches narrow-width overflow before bit 64`() {
+        // [0xFF, 0xFF, 0x07] = 131071 (17 bits) into UInt16 — caught at shift 14,
+        // the precise-fit check the hardcoded-64 interpreters could not express.
+        #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 16)) {
+            try decodeUnsigned([0xFF, 0xFF, 0x07], UInt16.self)
+        }
+    }
+
+    @Test
+    func `unterminated when continuation bit never clears`() {
+        #expect(throws: Binary.LEB128.Error.unterminated) {
+            try decodeUnsigned([0x80, 0x80, 0x80], UInt64.self)
+        }
+    }
+
+    @Test
+    func `over-long encoding past width is rejected (strict)`() {
+        // Strict contract: any byte past the target width is over-long and rejected,
+        // even a zero pad. A minimal (canonical) encoder never emits these.
+        #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
+            try decodeUnsigned([0x80, 0x80, 0x00], UInt8.self)
+        }
+    }
+
+    @Test
+    func `decodes type maxima and minima round-trip`() throws {
+        #expect(try decodeUnsigned(encoded(UInt8.max), UInt8.self) == UInt8.max)
+        #expect(try decodeUnsigned(encoded(UInt64.max), UInt64.self) == UInt64.max)
+        #expect(try decodeSigned(encoded(Int64.min), Int64.self) == Int64.min)
+        #expect(try decodeSigned(encoded(Int64.max), Int64.self) == Int64.max)
+    }
+}

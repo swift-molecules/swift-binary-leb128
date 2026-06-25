@@ -2,73 +2,109 @@
 
 ![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 
-LEB128 (Little-Endian Base 128) variable-length integer serialization. Variable-length encoding used by DWARF debug info, WebAssembly binary format, and Protocol Buffers wire format.
-
-This package ships only the **serialization** half (`[UInt8].init(leb128:)` for both signed and unsigned integers). The parsing half lives in [`swift-binary-parser-primitives/Sources/Binary LEB128 Parser Primitives/`](https://github.com/swift-primitives/swift-binary-parser-primitives) and consumes this package.
-
----
-
-## Key Features
-
-- **Serialization-only L1 leaf** — depends only on `Binary Namespace` from `swift-binary-primitives`. No transitive surface beyond the namespace anchor.
-- **Symmetric with the parser side** — `swift-binary-parser-primitives/Binary LEB128 Parser Primitives` provides the parser; this package provides the serializer. Mirrors the institute's `Parser.Protocol` / `Serializer.Protocol` separation per `canonical-witness-capability-attachment.md`.
-- **Foundation-free** — pure stdlib (`UnsignedInteger`, `SignedInteger`, `FixedWidthInteger`, `Array<UInt8>`).
-- **Multi-spec authority** — the LEB128 encoding mechanism is shared across DWARF v5 §7.6, WebAssembly Core 1.0 §5.2.2, and Protocol Buffers wire format (varint). L1 mechanism + L2 spec packages pattern.
+LEB128 (Little-Endian Base 128) variable-length integer encoding — the shared encode and decode codec mechanism over `Byte`, the format used by DWARF debug info, the WebAssembly binary format, and Protocol Buffers varints.
 
 ---
 
 ## Quick Start
 
+Encoding packs a fixed-width integer into the minimal LEB128 byte sequence. The MSB of each byte is the continuation flag; signed values sign-extend the final byte.
+
 ```swift
 import Binary_LEB128_Primitives
 
-// Unsigned encoding — the MSB of each byte is the continuation flag.
-let bytes = [UInt8](leb128: 624485 as UInt32)
+// Unsigned — 7 payload bits per byte, MSB set while more bytes follow.
+let bytes = [Byte](leb128: 624485 as UInt32)
 // [0xE5, 0x8E, 0x26]
 
-let zero = [UInt8](leb128: 0 as UInt64)
-// [0x00]
+let small = [Byte](leb128: 127 as UInt8)
+// [0x7F]   (single byte, MSB clear)
 
-let small = [UInt8](leb128: 127 as UInt8)
-// [0x7F]   (single byte, MSB = 0)
-
-// Signed encoding — uses sign extension; the sign bit of the final byte is extended.
-let negative = [UInt8](leb128: -1 as Int8)
+// Signed — two's-complement with sign extension.
+let negative = [Byte](leb128: -1 as Int8)
 // [0x7F]
 
-let positive = [UInt8](leb128: 127 as Int32)
-// [0xFF, 0x00]   (extra byte distinguishes from -1)
+let positive = [Byte](leb128: 127 as Int32)
+// [0xFF, 0x00]   (an extra byte distinguishes +127 from -1)
 ```
+
+Decoding routes through one bit-width-parameterized core, `Binary.LEB128.Decode`. It is *step-based*: you feed payload bytes one at a time, holding your own accumulator and shift, and the fold returns `true` on the final byte. This is the single decode arithmetic every LEB128 reader in the ecosystem delegates to, so a borrowed zero-copy cursor and a plain `[UInt8]` driver share identical overflow behaviour.
+
+```swift
+import Binary_LEB128_Primitives
+
+func decode(_ encoded: [UInt8]) throws(Binary.LEB128.Error) -> UInt64 {
+    var result: UInt64 = 0
+    var shift = 0
+    for byte in encoded {
+        if try Binary.LEB128.Decode.unsigned(byte: byte, into: &result, shift: &shift) {
+            return result
+        }
+    }
+    throw .unterminated
+}
+
+let value = try decode([0xE5, 0x8E, 0x26])   // 624485
+```
+
+The decode contract is strict: a payload that cannot fit the target width is rejected the moment it appears (precise-fit), and an encoding that runs past the target width is rejected even when the trailing bytes are zero or sign padding (over-long). A canonical, minimal encoder never emits such bytes, so round-trips are unaffected — only malformed input is rejected, surfaced as `Binary.LEB128.Error.overflow(bitWidth:)` or `.unterminated`.
 
 ---
 
-## Errors
-
-`Binary.LEB128.Error` is the parsing-side error vocabulary; serialization is total (no failure modes for valid integer inputs).
+## Installation
 
 ```swift
-public enum Binary.LEB128.Error: Swift.Error, Sendable, Equatable {
-    case overflow(bitWidth: Int)   // The encoded value exceeds the target type's bit width.
-    case unterminated              // The input ended before the final byte (missing byte with MSB=0).
-}
+dependencies: [
+    .package(url: "https://github.com/swift-primitives/swift-binary-leb128-primitives.git", branch: "main")
+]
 ```
+
+```swift
+.target(
+    name: "App",
+    dependencies: [
+        .product(name: "Binary LEB128 Primitives", package: "swift-binary-leb128-primitives"),
+    ]
+)
+```
+
+Requires Swift 6.3.1 and macOS 26 / iOS 26 / tvOS 26 / watchOS 26 / visionOS 26 (or the matching Linux / Windows toolchain).
 
 ---
 
 ## Architecture
 
-LEB128 is a serialization mechanism, not a spec. Multiple specifications use it:
+LEB128 is a codec mechanism, not a specification. This package owns the bit-level arithmetic both directions share; spec packages (DWARF, WebAssembly, Protocol Buffers) build their named parsers on top of it. Five products, decomposed so consumers import only the direction they need.
 
-- **DWARF v5 §7.6** — debug information format.
-- **WebAssembly Core 1.0 §5.2.2** — binary format integers.
-- **Protocol Buffers wire format** — Google calls them "varints" but the encoding is LEB128.
+| Product | Target | Purpose |
+|---------|--------|---------|
+| `Binary LEB128 Primitive` | `Sources/Binary LEB128 Primitive/` | The `Binary.LEB128` namespace and `Binary.LEB128.Error` (`overflow(bitWidth:)`, `unterminated`). |
+| `Binary LEB128 Decode Primitives` | `Sources/Binary LEB128 Decode Primitives/` | `Binary.LEB128.Decode` — the single bit-width-parameterized decode core (`unsigned` / `signed` step folds). |
+| `Binary LEB128 Encode Primitives` | `Sources/Binary LEB128 Encode Primitives/` | `[Byte].init(leb128:)` for unsigned and signed `FixedWidthInteger`s. |
+| `Binary LEB128 Primitives` | `Sources/Binary LEB128 Primitives/` | Umbrella re-exporting the namespace, decode core, and encoder under one import. |
+| `Binary LEB128 Primitives Test Support` | `Tests/Support/` | Re-exports the umbrella for test consumers. |
 
-This package owns the bit-level mechanism. Spec packages that consume LEB128 (a future `swift-dwarf-leb128`, `swift-wasm-leb128`, or unified spec packages with their own naming) build on top of this primitive.
-
-The L1 mechanism + L2 spec packages pattern is identical to the swift-binary-base-primitives + swift-rfc-4648 architecture per `swift-institute/Research/binary-base-n-rfc-4648-reconciliation.md`.
+Depends only on the `Binary` namespace anchor (`swift-binary-primitives`) and `Byte` (`swift-byte-primitives`). Foundation-free.
 
 ---
 
-## Provenance
+## Platform Support
 
-Split from `swift-binary-primitives/Sources/Binary LEB128 Primitives/` on 2026-05-07 per [`swift-institute/Research/binary-primitives-package-decomposition.md`](https://github.com/swift-institute) (RECOMMENDATION, Tier 2). The split mirrors the precedent set earlier the same day by [`swift-binary-base-primitives`](https://github.com/swift-primitives/swift-binary-base-primitives), itself authored per [`swift-institute/Research/binary-base-n-encoding-family-architecture.md`](https://github.com/swift-institute).
+| Platform | Status |
+|----------|--------|
+| macOS 26 | Full support |
+| Linux | Full support |
+| Windows | Full support |
+| iOS / tvOS / watchOS / visionOS | Supported |
+
+---
+
+## Community
+
+<!-- BEGIN: discussion -->
+<!-- Discussion thread created at publication. -->
+<!-- END: discussion -->
+
+## License
+
+Apache 2.0. See [LICENSE.md](LICENSE.md).

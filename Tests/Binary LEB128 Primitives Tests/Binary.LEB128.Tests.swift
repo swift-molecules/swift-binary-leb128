@@ -4,10 +4,10 @@
 // Tests for LEB128 serialization and error types.
 // Parser tests are in swift-binary-parser-primitives.
 
-import Byte_Primitives
-import Testing
 import Binary_LEB128_Primitives
 import Binary_LEB128_Primitives_Test_Support
+import Byte_Primitives
+import Testing
 
 // MARK: - Test Suites
 

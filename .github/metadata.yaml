@@ -1,0 +1,9 @@
+# .github/metadata.yaml
+description: "LEB128 variable-length integer encoding: the shared encode and decode codec mechanism over Byte."
+topics:
+  - primitives
+  - leb128
+  - encoding
+homepage: "https://swift-institute.org"
+readme:
+  family: E

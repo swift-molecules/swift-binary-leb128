@@ -32,10 +32,12 @@ extension Binary.LEB128 {
 // MARK: - CustomStringConvertible
 
 extension Binary.LEB128.Error: CustomStringConvertible {
+    /// A human-readable description of the LEB128 decoding failure.
     public var description: String {
         switch self {
         case .overflow(let bitWidth):
             return "LEB128 value exceeds \(bitWidth)-bit capacity"
+
         case .unterminated:
             return "LEB128 sequence incomplete (missing terminating byte)"
         }

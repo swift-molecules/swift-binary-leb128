@@ -12,25 +12,75 @@ let package = Package(
         .visionOS(.v26),
     ],
     products: [
+        // MARK: - Namespace + Error (root)
+        .library(
+            name: "Binary LEB128 Primitive",
+            targets: ["Binary LEB128 Primitive"]
+        ),
+
+        // MARK: - Codec mechanism
+        .library(
+            name: "Binary LEB128 Decode Primitives",
+            targets: ["Binary LEB128 Decode Primitives"]
+        ),
+        .library(
+            name: "Binary LEB128 Encode Primitives",
+            targets: ["Binary LEB128 Encode Primitives"]
+        ),
+
+        // MARK: - Umbrella
         .library(
             name: "Binary LEB128 Primitives",
             targets: ["Binary LEB128 Primitives"]
         ),
+
+        // MARK: - Test Support
         .library(
             name: "Binary LEB128 Primitives Test Support",
             targets: ["Binary LEB128 Primitives Test Support"]
         ),
     ],
     dependencies: [
-        .package(path: "../swift-binary-primitives"),
+        .package(url: "https://github.com/swift-primitives/swift-binary-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-byte-primitives.git", branch: "main"),
     ],
     targets: [
+        // MARK: - Namespace + Error (root; zero external deps beyond the Binary anchor per [MOD-017])
+        .target(
+            name: "Binary LEB128 Primitive",
+            dependencies: [
+                .product(name: "Binary Primitive", package: "swift-binary-primitives"),
+            ]
+        ),
+
+        // MARK: - Decode core (the shared, bit-width-parameterized decode arithmetic)
+        .target(
+            name: "Binary LEB128 Decode Primitives",
+            dependencies: [
+                "Binary LEB128 Primitive",
+            ]
+        ),
+
+        // MARK: - Encode (serializer)
+        .target(
+            name: "Binary LEB128 Encode Primitives",
+            dependencies: [
+                "Binary LEB128 Primitive",
+                .product(name: "Byte Primitives", package: "swift-byte-primitives"),
+            ]
+        ),
+
+        // MARK: - Umbrella
         .target(
             name: "Binary LEB128 Primitives",
             dependencies: [
-                .product(name: "Binary Namespace", package: "swift-binary-primitives"),
+                "Binary LEB128 Primitive",
+                "Binary LEB128 Decode Primitives",
+                "Binary LEB128 Encode Primitives",
             ]
         ),
+
+        // MARK: - Test Support
         .target(
             name: "Binary LEB128 Primitives Test Support",
             dependencies: [
