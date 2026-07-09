@@ -11,19 +11,19 @@ import Testing
 
 // MARK: - Test Suites
 
-/// Tests for Binary.LEB128 - uses parallel namespace pattern per [TEST-004]
-/// since Binary.LEB128 is a namespace enum.
-@Suite("Binary.LEB128")
-struct BinaryLEB128Tests {
-    @Suite struct Unit {}
-    @Suite struct EdgeCase {}
-    @Suite struct Integration {}
-    @Suite(.serialized) struct Performance {}
+/// Tests for Binary.LEB128 - extension pattern per [SWIFT-TEST-002].
+extension Binary.LEB128 {
+    @Suite("Binary.LEB128") struct Test {
+        @Suite struct Unit {}
+        @Suite struct EdgeCase {}
+        @Suite struct Integration {}
+        @Suite(.serialized) struct Performance {}
+    }
 }
 
 // MARK: - Unit Tests
 
-extension BinaryLEB128Tests.Unit {
+extension Binary.LEB128.Test.Unit {
 
     // MARK: - Unsigned Serialization
 
@@ -61,7 +61,7 @@ extension BinaryLEB128Tests.Unit {
 
 // MARK: - Edge Case Tests
 
-extension BinaryLEB128Tests.EdgeCase {
+extension Binary.LEB128.Test.EdgeCase {
 
     @Test
     func `error is Sendable`() async {

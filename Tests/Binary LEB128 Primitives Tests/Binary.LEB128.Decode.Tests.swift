@@ -52,15 +52,16 @@ private func encoded<T: SignedInteger & FixedWidthInteger>(_ value: T) -> [UInt8
 
 // MARK: - Test Suites
 
-@Suite("Binary.LEB128.Decode")
-struct BinaryLEB128DecodeTests {
-    @Suite struct Unit {}
-    @Suite struct EdgeCase {}
+extension Binary.LEB128.Decode {
+    @Suite("Binary.LEB128.Decode") struct Test {
+        @Suite struct Unit {}
+        @Suite struct EdgeCase {}
+    }
 }
 
 // MARK: - Unit
 
-extension BinaryLEB128DecodeTests.Unit {
+extension Binary.LEB128.Decode.Test.Unit {
 
     @Test
     func `decode unsigned known sequences`() throws {
@@ -115,7 +116,7 @@ extension BinaryLEB128DecodeTests.Unit {
 
 // MARK: - Edge Cases
 
-extension BinaryLEB128DecodeTests.EdgeCase {
+extension Binary.LEB128.Decode.Test.EdgeCase {
 
     @Test
     func `unsigned rejects value past target width`() {
