@@ -158,4 +158,37 @@ extension Binary.LEB128.Decode.Test.EdgeCase {
         #expect(try decodeSigned(encoded(Int64.min), Int64.self) == Int64.min)
         #expect(try decodeSigned(encoded(Int64.max), Int64.self) == Int64.max)
     }
+
+    // F-001: signed decode must reject a final byte that straddles the
+    // target width when its unused bits disagree with the resulting sign —
+    // the WebAssembly sN unused-bits rule. Pre-fix, these silently truncated
+    // to a plausible-looking (but wrong) in-range value instead of throwing.
+
+    @Test
+    func `signed rejects final byte straddling width with mismatched sign (positive overflow)`() {
+        // [0x80, 0x01] is the two's-complement encoding of +128 (final byte's
+        // 0x40 sign bit clear), which does not fit Int8 (max 127).
+        #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
+            try decodeSigned([0x80, 0x01], Int8.self)
+        }
+    }
+
+    @Test
+    func `signed rejects final byte straddling width with mismatched sign (negative overflow)`() {
+        // [0xFF, 0x7E] is the two's-complement encoding of -129 (final byte's
+        // 0x40 sign bit set), which does not fit Int8 (min -128).
+        #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
+            try decodeSigned([0xFF, 0x7E], Int8.self)
+        }
+    }
+
+    @Test
+    func `signed rejects wide straddle past Int64 width`() {
+        // Nine 0x80 zero-payload continuation bytes followed by a final 0x01
+        // encodes +2^63 (final byte's 0x40 sign bit clear), which does not
+        // fit Int64 (max 2^63 - 1).
+        #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 64)) {
+            try decodeSigned(Array(repeating: 0x80, count: 9) + [0x01], Int64.self)
+        }
+    }
 }

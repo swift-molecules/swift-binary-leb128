@@ -96,10 +96,25 @@ extension Binary.LEB128.Decode {
             // Over-long: this byte runs past the target width — reject (strict).
             throw .overflow(bitWidth: T.bitWidth)
         }
+        let done = (byte & 0x80) == 0
+        if done, shift + 7 > T.bitWidth {
+            // Precise-fit (straddle): this final byte's payload runs past the
+            // target width. The bit that lands on T's sign position and every
+            // bit above it (including the byte's own 0x40 sign flag) must all
+            // agree with the sign the result will carry — the WebAssembly sN
+            // unused-bits rule, the signed counterpart of unsigned's
+            // `payload > T.max >> shift` precise-fit check.
+            let fitBits = T.bitWidth - shift
+            let region = (byte & 0x7F) >> (fitBits - 1)
+            let regionWidth = 8 - fitBits
+            let allOnes: UInt8 = (1 << regionWidth) - 1
+            if region != 0, region != allOnes {
+                throw .overflow(bitWidth: T.bitWidth)
+            }
+        }
         let payload = T(truncatingIfNeeded: byte & 0x7F)
         result |= payload << shift
         shift += 7
-        let done = (byte & 0x80) == 0
         if done, shift < T.bitWidth, (byte & 0x40) != 0 {
             // Final byte's sign bit set: extend the sign through the high bits.
             result |= T(-1) << shift
