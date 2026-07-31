@@ -15,7 +15,7 @@ import Testing
 extension Binary.LEB128 {
     @Suite("Binary.LEB128") struct Test {
         @Suite struct Unit {}
-        @Suite struct EdgeCase {}
+        @Suite struct `Edge Case` {}
         @Suite struct Integration {}
         @Suite(.serialized) struct Performance {}
     }
@@ -61,7 +61,7 @@ extension Binary.LEB128.Test.Unit {
 
 // MARK: - Edge Case Tests
 
-extension Binary.LEB128.Test.EdgeCase {
+extension Binary.LEB128.Test.`Edge Case` {
 
     @Test
     func `error is Sendable`() async {
