@@ -74,8 +74,12 @@ extension Binary.LEB128.Test.`Edge Case` {
     @Test
     func `error is Equatable`() {
         #expect(Binary.LEB128.Error.unterminated == Binary.LEB128.Error.unterminated)
-        #expect(Binary.LEB128.Error.overflow(bitWidth: 8) == Binary.LEB128.Error.overflow(bitWidth: 8))
-        #expect(Binary.LEB128.Error.overflow(bitWidth: 8) != Binary.LEB128.Error.overflow(bitWidth: 16))
+        #expect(
+            Binary.LEB128.Error.overflow(bitWidth: 8) == Binary.LEB128.Error.overflow(bitWidth: 8)
+        )
+        #expect(
+            Binary.LEB128.Error.overflow(bitWidth: 8) != Binary.LEB128.Error.overflow(bitWidth: 16)
+        )
         #expect(Binary.LEB128.Error.unterminated != Binary.LEB128.Error.overflow(bitWidth: 8))
     }
 }
