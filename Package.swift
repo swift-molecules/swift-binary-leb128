@@ -1,15 +1,15 @@
-// swift-tools-version: 6.3.3
+// swift-tools-version: 6.4
 
 import PackageDescription
 
 let package = Package(
     name: "swift-binary-leb128-primitives",
     platforms: [
-        .macOS("27"),
-        .iOS("27"),
-        .tvOS("27"),
-        .watchOS("27"),
-        .visionOS("27"),
+        .macOS(.v27),
+        .iOS(.v27),
+        .tvOS(.v27),
+        .watchOS(.v27),
+        .visionOS(.v27),
     ],
     products: [
         // MARK: - Namespace + Error (root)
@@ -41,15 +41,21 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-primitives/swift-binary-primitives.git", branch: "main"),
-        .package(url: "https://github.com/swift-primitives/swift-byte-primitives.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-primitives/swift-binary-primitives.git",
+            branch: "main"
+        ),
+        .package(
+            url: "https://github.com/swift-primitives/swift-byte-primitives.git",
+            branch: "main"
+        ),
     ],
     targets: [
         // MARK: - Namespace + Error (root; zero external deps beyond the Binary anchor per [MOD-017])
         .target(
             name: "Binary LEB128 Primitive",
             dependencies: [
-                .product(name: "Binary Primitive", package: "swift-binary-primitives"),
+                .product(name: "Binary Primitive", package: "swift-binary-primitives")
             ]
         ),
 
@@ -57,7 +63,7 @@ let package = Package(
         .target(
             name: "Binary LEB128 Decode Primitives",
             dependencies: [
-                "Binary LEB128 Primitive",
+                "Binary LEB128 Primitive"
             ]
         ),
 
@@ -84,7 +90,7 @@ let package = Package(
         .target(
             name: "Binary LEB128 Primitives Test Support",
             dependencies: [
-                "Binary LEB128 Primitives",
+                "Binary LEB128 Primitives"
             ],
             path: "Tests/Support"
         ),
