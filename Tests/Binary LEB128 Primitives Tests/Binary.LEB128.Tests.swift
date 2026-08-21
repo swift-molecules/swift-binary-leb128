@@ -1,17 +1,8 @@
-// Binary.LEB128.Tests.swift
-// swift-binary-leb128-primitives
-//
-// Tests for LEB128 serialization and error types.
-// Parser tests are in swift-binary-parser-primitives.
-
 import Binary_LEB128_Primitives
 import Binary_LEB128_Primitives_Test_Support
 import Byte_Primitives
 import Testing
 
-// MARK: - Test Suites
-
-/// Tests for Binary.LEB128 - extension pattern per [SWIFT-TEST-002].
 extension Binary.LEB128 {
     @Suite("Binary.LEB128") struct Test {
         @Suite struct Unit {}
@@ -21,11 +12,7 @@ extension Binary.LEB128 {
     }
 }
 
-// MARK: - Unit Tests
-
 extension Binary.LEB128.Test.Unit {
-
-    // MARK: - Unsigned Serialization
 
     @Test
     func `serialize unsigned single byte`() {
@@ -40,8 +27,6 @@ extension Binary.LEB128.Test.Unit {
         #expect([Byte](leb128: 624485 as UInt32) == [0xE5, 0x8E, 0x26])
         #expect([Byte](leb128: 300 as UInt32) == [0xAC, 0x02])
     }
-
-    // MARK: - Signed Serialization
 
     @Test
     func `serialize signed positive`() {
@@ -58,8 +43,6 @@ extension Binary.LEB128.Test.Unit {
         #expect([Byte](leb128: -128 as Int32) == [0x80, 0x7F])
     }
 }
-
-// MARK: - Edge Case Tests
 
 extension Binary.LEB128.Test.`Edge Case` {
 

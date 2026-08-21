@@ -12,13 +12,12 @@ let package = Package(
         .visionOS(.v27),
     ],
     products: [
-        // MARK: - Namespace + Error (root)
+
         .library(
             name: "Binary LEB128 Primitive",
             targets: ["Binary LEB128 Primitive"]
         ),
 
-        // MARK: - Codec mechanism
         .library(
             name: "Binary LEB128 Decode Primitives",
             targets: ["Binary LEB128 Decode Primitives"]
@@ -28,13 +27,11 @@ let package = Package(
             targets: ["Binary LEB128 Encode Primitives"]
         ),
 
-        // MARK: - Umbrella
         .library(
             name: "Binary LEB128 Primitives",
             targets: ["Binary LEB128 Primitives"]
         ),
 
-        // MARK: - Test Support
         .library(
             name: "Binary LEB128 Primitives Test Support",
             targets: ["Binary LEB128 Primitives Test Support"]
@@ -51,7 +48,7 @@ let package = Package(
         ),
     ],
     targets: [
-        // MARK: - Namespace + Error (root; zero external deps beyond the Binary anchor per [MOD-017])
+
         .target(
             name: "Binary LEB128 Primitive",
             dependencies: [
@@ -59,7 +56,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Decode core (the shared, bit-width-parameterized decode arithmetic)
         .target(
             name: "Binary LEB128 Decode Primitives",
             dependencies: [
@@ -67,7 +63,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Encode (serializer)
         .target(
             name: "Binary LEB128 Encode Primitives",
             dependencies: [
@@ -76,7 +71,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Umbrella
         .target(
             name: "Binary LEB128 Primitives",
             dependencies: [
@@ -86,7 +80,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Test Support
         .target(
             name: "Binary LEB128 Primitives Test Support",
             dependencies: [

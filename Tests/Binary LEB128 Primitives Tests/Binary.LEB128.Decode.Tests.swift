@@ -1,18 +1,8 @@
-// Binary.LEB128.Decode.Tests.swift
-// swift-binary-leb128-primitives
-//
-// Tests for the shared LEB128 decode core (Binary.LEB128.Decode). These pin
-// the canonical precise-fit contract the parser structs and the binary
-// Machine/Borrowed interpreters will route through.
-
 import Binary_LEB128_Primitives
 import Binary_LEB128_Primitives_Test_Support
 import Byte_Primitives
 import Testing
 
-// MARK: - Drivers
-
-/// Decodes a full unsigned LEB128 byte sequence by folding each byte through the core.
 private func decodeUnsigned<T: UnsignedInteger & FixedWidthInteger>(
     _ bytes: [UInt8],
     _ type: T.Type
@@ -27,7 +17,6 @@ private func decodeUnsigned<T: UnsignedInteger & FixedWidthInteger>(
     throw .unterminated
 }
 
-/// Decodes a full signed LEB128 byte sequence by folding each byte through the core.
 private func decodeSigned<T: SignedInteger & FixedWidthInteger>(
     _ bytes: [UInt8],
     _ type: T.Type
@@ -50,16 +39,12 @@ private func encoded<T: SignedInteger & FixedWidthInteger>(_ value: T) -> [UInt8
     [Byte](leb128: value).map(\.underlying)
 }
 
-// MARK: - Test Suites
-
 extension Binary.LEB128.Decode {
     @Suite("Binary.LEB128.Decode") struct Test {
         @Suite struct Unit {}
         @Suite struct `Edge Case` {}
     }
 }
-
-// MARK: - Unit
 
 extension Binary.LEB128.Decode.Test.Unit {
 
@@ -114,13 +99,11 @@ extension Binary.LEB128.Decode.Test.Unit {
     }
 }
 
-// MARK: - Edge Cases
-
 extension Binary.LEB128.Decode.Test.`Edge Case` {
 
     @Test
     func `unsigned rejects value past target width`() {
-        // [0x80, 0x02] encodes 256, which exceeds UInt8.
+
         #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
             try decodeUnsigned([0x80, 0x02], UInt8.self)
         }
@@ -128,8 +111,7 @@ extension Binary.LEB128.Decode.Test.`Edge Case` {
 
     @Test
     func `unsigned precise-fit catches narrow-width overflow before bit 64`() {
-        // [0xFF, 0xFF, 0x07] = 131071 (17 bits) into UInt16 — caught at shift 14,
-        // the precise-fit check the hardcoded-64 interpreters could not express.
+
         #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 16)) {
             try decodeUnsigned([0xFF, 0xFF, 0x07], UInt16.self)
         }
@@ -144,8 +126,7 @@ extension Binary.LEB128.Decode.Test.`Edge Case` {
 
     @Test
     func `over-long encoding past width is rejected (strict)`() {
-        // Strict contract: any byte past the target width is over-long and rejected,
-        // even a zero pad. A minimal (canonical) encoder never emits these.
+
         #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
             try decodeUnsigned([0x80, 0x80, 0x00], UInt8.self)
         }
@@ -159,15 +140,9 @@ extension Binary.LEB128.Decode.Test.`Edge Case` {
         #expect(try decodeSigned(encoded(Int64.max), Int64.self) == Int64.max)
     }
 
-    // F-001: signed decode must reject a final byte that straddles the
-    // target width when its unused bits disagree with the resulting sign —
-    // the WebAssembly sN unused-bits rule. Pre-fix, these silently truncated
-    // to a plausible-looking (but wrong) in-range value instead of throwing.
-
     @Test
     func `signed rejects final byte straddling width with mismatched sign (positive overflow)`() {
-        // [0x80, 0x01] is the two's-complement encoding of +128 (final byte's
-        // 0x40 sign bit clear), which does not fit Int8 (max 127).
+
         #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
             try decodeSigned([0x80, 0x01], Int8.self)
         }
@@ -175,8 +150,7 @@ extension Binary.LEB128.Decode.Test.`Edge Case` {
 
     @Test
     func `signed rejects final byte straddling width with mismatched sign (negative overflow)`() {
-        // [0xFF, 0x7E] is the two's-complement encoding of -129 (final byte's
-        // 0x40 sign bit set), which does not fit Int8 (min -128).
+
         #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 8)) {
             try decodeSigned([0xFF, 0x7E], Int8.self)
         }
@@ -184,9 +158,7 @@ extension Binary.LEB128.Decode.Test.`Edge Case` {
 
     @Test
     func `signed rejects wide straddle past Int64 width`() {
-        // Nine 0x80 zero-payload continuation bytes followed by a final 0x01
-        // encodes +2^63 (final byte's 0x40 sign bit clear), which does not
-        // fit Int64 (max 2^63 - 1).
+
         #expect(throws: Binary.LEB128.Error.overflow(bitWidth: 64)) {
             try decodeSigned(Array(repeating: 0x80, count: 9) + [0x01], Int64.self)
         }
