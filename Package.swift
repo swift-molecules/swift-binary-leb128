@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "swift-binary-leb128-primitives",
+    name: "swift-binary-leb128",
     platforms: [
         .macOS(.v27),
         .iOS(.v27),
@@ -19,31 +19,31 @@ let package = Package(
         ),
 
         .library(
-            name: "Binary LEB128 Decode Primitives",
-            targets: ["Binary LEB128 Decode Primitives"]
+            name: "Binary LEB128 Decode",
+            targets: ["Binary LEB128 Decode"]
         ),
         .library(
-            name: "Binary LEB128 Encode Primitives",
-            targets: ["Binary LEB128 Encode Primitives"]
-        ),
-
-        .library(
-            name: "Binary LEB128 Primitives",
-            targets: ["Binary LEB128 Primitives"]
+            name: "Binary LEB128 Encode",
+            targets: ["Binary LEB128 Encode"]
         ),
 
         .library(
-            name: "Binary LEB128 Primitives Test Support",
-            targets: ["Binary LEB128 Primitives Test Support"]
+            name: "Binary LEB128",
+            targets: ["Binary LEB128"]
+        ),
+
+        .library(
+            name: "Binary LEB128 Test Support",
+            targets: ["Binary LEB128 Test Support"]
         ),
     ],
     dependencies: [
         .package(
-            url: "https://github.com/swift-primitives/swift-binary-primitives.git",
+            url: "https://github.com/swift-molecules/swift-binary.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-primitives/swift-byte-primitives.git",
+            url: "https://github.com/swift-molecules/swift-byte.git",
             branch: "main"
         ),
     ],
@@ -52,46 +52,46 @@ let package = Package(
         .target(
             name: "Binary LEB128 Primitive",
             dependencies: [
-                .product(name: "Binary Primitive", package: "swift-binary-primitives")
+                .product(name: "Binary Primitive", package: "swift-binary")
             ]
         ),
 
         .target(
-            name: "Binary LEB128 Decode Primitives",
+            name: "Binary LEB128 Decode",
             dependencies: [
                 "Binary LEB128 Primitive"
             ]
         ),
 
         .target(
-            name: "Binary LEB128 Encode Primitives",
+            name: "Binary LEB128 Encode",
             dependencies: [
                 "Binary LEB128 Primitive",
-                .product(name: "Byte Primitives", package: "swift-byte-primitives"),
+                .product(name: "Byte", package: "swift-byte"),
             ]
         ),
 
         .target(
-            name: "Binary LEB128 Primitives",
+            name: "Binary LEB128",
             dependencies: [
                 "Binary LEB128 Primitive",
-                "Binary LEB128 Decode Primitives",
-                "Binary LEB128 Encode Primitives",
+                "Binary LEB128 Decode",
+                "Binary LEB128 Encode",
             ]
         ),
 
         .target(
-            name: "Binary LEB128 Primitives Test Support",
+            name: "Binary LEB128 Test Support",
             dependencies: [
-                "Binary LEB128 Primitives"
+                "Binary LEB128"
             ],
             path: "Tests/Support"
         ),
         .testTarget(
-            name: "Binary LEB128 Primitives Tests",
+            name: "Binary LEB128 Tests",
             dependencies: [
-                "Binary LEB128 Primitives",
-                "Binary LEB128 Primitives Test Support",
+                "Binary LEB128",
+                "Binary LEB128 Test Support",
             ]
         ),
     ],

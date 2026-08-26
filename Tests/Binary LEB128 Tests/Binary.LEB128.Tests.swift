@@ -1,6 +1,6 @@
-import Binary_LEB128_Primitives
-import Binary_LEB128_Primitives_Test_Support
-import Byte_Primitives
+import Binary_LEB128
+import Binary_LEB128_Test_Support
+import Byte
 import Testing
 
 extension Binary.LEB128 {
