@@ -14,8 +14,8 @@ let package = Package(
     products: [
 
         .library(
-            name: "Binary LEB128 Primitive",
-            targets: ["Binary LEB128 Primitive"]
+            name: "Binary LEB128",
+            targets: ["Binary LEB128"]
         ),
 
         .library(
@@ -28,62 +28,50 @@ let package = Package(
         ),
 
         .library(
-            name: "Binary LEB128",
-            targets: ["Binary LEB128"]
-        ),
-
-        .library(
             name: "Binary LEB128 Test Support",
             targets: ["Binary LEB128 Test Support"]
         ),
     ],
     dependencies: [
         .package(
-            url: "https://github.com/swift-molecules/swift-binary.git",
+            url: "https://github.com/swift-atoms/swift-binary.git",
             branch: "main"
         ),
         .package(
-            url: "https://github.com/swift-molecules/swift-byte.git",
+            url: "https://github.com/swift-atoms/swift-byte.git",
             branch: "main"
         ),
     ],
     targets: [
 
         .target(
-            name: "Binary LEB128 Primitive",
+            name: "Binary LEB128",
             dependencies: [
-                .product(name: "Binary Primitive", package: "swift-binary")
+                .product(name: "Binary", package: "swift-binary")
             ]
         ),
 
         .target(
             name: "Binary LEB128 Decode",
             dependencies: [
-                "Binary LEB128 Primitive"
+                "Binary LEB128"
             ]
         ),
 
         .target(
             name: "Binary LEB128 Encode",
             dependencies: [
-                "Binary LEB128 Primitive",
+                "Binary LEB128",
                 .product(name: "Byte", package: "swift-byte"),
-            ]
-        ),
-
-        .target(
-            name: "Binary LEB128",
-            dependencies: [
-                "Binary LEB128 Primitive",
-                "Binary LEB128 Decode",
-                "Binary LEB128 Encode",
             ]
         ),
 
         .target(
             name: "Binary LEB128 Test Support",
             dependencies: [
-                "Binary LEB128"
+                "Binary LEB128",
+                "Binary LEB128 Decode",
+                "Binary LEB128 Encode",
             ],
             path: "Tests/Support"
         ),

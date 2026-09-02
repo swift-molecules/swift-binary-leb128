@@ -1,4 +1,4 @@
-public import Binary_LEB128_Primitive
+public import Binary_LEB128
 
 extension Binary.LEB128 {
 

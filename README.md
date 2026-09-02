@@ -1,4 +1,4 @@
-# Binary LEB128
+# Binary LEB128 Primitives
 
 ![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 
@@ -11,7 +11,7 @@ LEB128 (Little-Endian Base 128) variable-length integer encoding — the shared 
 Encoding packs a fixed-width integer into the minimal LEB128 byte sequence. The MSB of each byte is the continuation flag; signed values sign-extend the final byte.
 
 ```swift
-import Binary_LEB128
+import Binary_LEB128_Primitives
 
 // Unsigned — 7 payload bits per byte, MSB set while more bytes follow.
 let bytes = [Byte](leb128: 624485 as UInt32)
@@ -31,7 +31,7 @@ let positive = [Byte](leb128: 127 as Int32)
 Decoding routes through one bit-width-parameterized core, `Binary.LEB128.Decode`. It is *step-based*: you feed payload bytes one at a time, holding your own accumulator and shift, and the fold returns `true` on the final byte. This is the single decode arithmetic every LEB128 reader in the ecosystem delegates to, so a borrowed zero-copy cursor and a plain `[UInt8]` driver share identical overflow behaviour.
 
 ```swift
-import Binary_LEB128
+import Binary_LEB128_Primitives
 
 func decode(_ encoded: [UInt8]) throws(Binary.LEB128.Error) -> UInt64 {
     var result: UInt64 = 0
@@ -74,15 +74,14 @@ Requires Swift 6.3.1 and macOS 26 / iOS 26 / tvOS 26 / watchOS 26 / visionOS 26 
 
 ## Architecture
 
-LEB128 is a codec mechanism, not a specification. This package owns the bit-level arithmetic both directions share; spec packages (DWARF, WebAssembly, Protocol Buffers) build their named parsers on top of it. Five products, decomposed so consumers import only the direction they need.
+LEB128 is a codec mechanism, not a specification. This package owns the bit-level arithmetic both directions share; spec packages (DWARF, WebAssembly, Protocol Buffers) build their named parsers on top of it. Four products, decomposed so consumers import only the direction they need.
 
 | Product | Target | Purpose |
 |---------|--------|---------|
-| `Binary LEB128 Primitive` | `Sources/Binary LEB128 Primitive/` | The `Binary.LEB128` namespace and `Binary.LEB128.Error` (`overflow(bitWidth:)`, `unterminated`). |
+| `Binary LEB128` | `Sources/Binary LEB128/` | The `Binary.LEB128` namespace and `Binary.LEB128.Error` (`overflow(bitWidth:)`, `unterminated`). |
 | `Binary LEB128 Decode` | `Sources/Binary LEB128 Decode/` | `Binary.LEB128.Decode` — the single bit-width-parameterized decode core (`unsigned` / `signed` step folds). |
 | `Binary LEB128 Encode` | `Sources/Binary LEB128 Encode/` | `[Byte].init(leb128:)` for unsigned and signed `FixedWidthInteger`s. |
-| `Binary LEB128` | `Sources/Binary LEB128/` | Umbrella re-exporting the namespace, decode core, and encoder under one import. |
-| `Binary LEB128 Test Support` | `Tests/Support/` | Re-exports the umbrella for test consumers. |
+| `Binary LEB128 Test Support` | `Tests/Support/` | Re-exports the namespace, decode core, and encoder for test consumers. |
 
 Depends only on the `Binary` namespace anchor (`swift-binary`) and `Byte` (`swift-byte`). Foundation-free.
 

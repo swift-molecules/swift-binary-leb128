@@ -32,11 +32,11 @@ private func decodeSigned<T: SignedInteger & FixedWidthInteger>(
 }
 
 private func encoded<T: UnsignedInteger & FixedWidthInteger>(_ value: T) -> [UInt8] {
-    [Byte](leb128: value).map(\.underlying)
+    [Byte](leb128: value).map(\.bitPattern)
 }
 
 private func encoded<T: SignedInteger & FixedWidthInteger>(_ value: T) -> [UInt8] {
-    [Byte](leb128: value).map(\.underlying)
+    [Byte](leb128: value).map(\.bitPattern)
 }
 
 extension Binary.LEB128.Decode {
